@@ -42,6 +42,7 @@ dependencies:
 
   # UI
   shimmer: ^3.0.0
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:
@@ -55,3 +56,9 @@ dev_dependencies:
 flutter:
   generate: true   # 开启 arb 自动生成
   uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/tabbar/
+    - assets/icons/
+

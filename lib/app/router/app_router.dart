@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/providers/user_provider.dart';
-import '../../shared/widgets/pet_owner_shell.dart';
-import '../../shared/widgets/provider_shell.dart';
+import '../../shared/widgets/app_shell.dart';
 
 // Auth
 import '../../features/auth/presentation/pages/welcome_page.dart';
@@ -109,26 +108,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, _s) => const LoginPage()),
       GoRoute(path: '/login-phone', builder: (_, _s) => const LoginPhonePage()),
 
-      // ─── 宠物主 Shell (4 tabs) ────────────────────────────
+      // ─── App Shell（宠物主 4 tabs / 看护师 4 tabs）─────────
       ShellRoute(
-        builder: (_, __, child) => PetOwnerShell(child: child),
+        builder: (_, __, child) => AppShell(child: child),
         routes: [
+          // 宠物主 tabs
           GoRoute(path: '/home', builder: (_, _s) => const HomePage()),
           GoRoute(path: '/pets', builder: (_, _s) => const PetsPage()),
+          // 看护师 tabs
+          GoRoute(path: '/provider-home', builder: (_, _s) => const ProviderHomePage()),
+          GoRoute(path: '/work-tab', builder: (_, _s) => const WorkTabPage()),
+          // 共享 tabs
           GoRoute(path: '/chat', builder: (_, _s) => const ChatPage()),
           GoRoute(path: '/my', builder: (_, _s) => const MyPage()),
-        ],
-      ),
-
-      // ─── 看护师 Shell (2 tabs) ────────────────────────────
-      ShellRoute(
-        builder: (_, __, child) => ProviderShell(child: child),
-        routes: [
-          GoRoute(
-              path: '/provider-home',
-              builder: (_, _s) => const ProviderHomePage()),
-          GoRoute(
-              path: '/work-tab', builder: (_, _s) => const WorkTabPage()),
         ],
       ),
 
