@@ -1,0 +1,714 @@
+# Flutter 宠物寄养平台 — 完整架构设计
+
+基于你的小程序页面结构，整合主题切换 + i18n + 双角色，完整方案如下：
+
+---
+
+## 一、完整目录结构
+
+```
+lib/
+├── main.dart
+├── app/
+│   ├── app.dart
+│   └── router/
+│       ├── app_router.dart
+│       ├── pet_owner_routes.dart
+│       └── provider_routes.dart
+│
+├── core/
+│   ├── constants/
+│   │   ├── api_constants.dart
+│   │   └── storage_keys.dart
+│   ├── network/
+│   │   ├── dio_client.dart
+│   │   └── token_interceptor.dart
+│   ├── storage/
+│   │   └── secure_storage.dart
+│   ├── theme/                        # 🎨 主题系统
+│   │   ├── app_theme.dart            # Light / Dark / Custom 主题定义
+│   │   ├── app_colors.dart           # 色板
+│   │   ├── app_text_styles.dart
+│   │   └── theme_provider.dart       # Riverpod 主题状态
+│   ├── i18n/                         # 🌐 国际化
+│   │   ├── app_localizations.dart
+│   │   ├── l10n/
+│   │   │   ├── app_zh.arb            # 中文
+│   │   │   ├── app_en.arb            # 英文
+│   │   │   └── app_ja.arb            # 日文（可扩展）
+│   │   └── locale_provider.dart      # Riverpod 语言状态
+│   └── utils/
+│       ├── validators.dart
+│       └── extensions.dart
+│
+├── features/
+│   │
+│   ├── auth/                         # 登录/注册
+│   │   ├── data/ domain/ presentation/
+│   │   └── presentation/pages/
+│   │       ├── welcome_page.dart     # welcome
+│   │       ├── login_page.dart       # login
+│   │       └── login_phone_page.dart # login_phone
+│   │
+│   ├── pet_owner/                    # 🐾 宠物主角色
+│   │   ├── home/
+│   │   │   └── presentation/pages/home_page.dart
+│   │   ├── search/
+│   │   │   └── presentation/pages/search_page.dart
+│   │   ├── services/
+│   │   │   └── presentation/pages/services_page.dart
+│   │   ├── pets/                     # 宠物管理
+│   │   │   └── presentation/pages/pets_page.dart
+│   │   ├── chat/
+│   │   │   ├── pages/chat_page.dart
+│   │   │   └── pages/chatroom_page.dart
+│   │   └── my/
+│   │       └── presentation/pages/my_page.dart
+│   │
+│   ├── provider_role/                # 🧑‍⚕️ 看护师角色
+│   │   ├── home/
+│   │   │   └── pages/provider_home_page.dart
+│   │   ├── work_tab/
+│   │   │   └── pages/work_tab_page.dart
+│   │   ├── clockin/                  # packageProvider
+│   │   │   ├── pages/clockin_page.dart
+│   │   │   ├── pages/clockin_record_page.dart
+│   │   │   ├── pages/clockin_tasks_page.dart
+│   │   │   └── pages/clockin_task_detail_page.dart
+│   │   └── report_issue/
+│   │       └── pages/report_issue_page.dart
+│   │
+│   ├── order/                        # 📦 packageOrder
+│   │   └── presentation/pages/
+│   │       ├── order_page.dart
+│   │       ├── provider_detail_page.dart
+│   │       ├── select_service_page.dart
+│   │       ├── checkout_page.dart
+│   │       ├── order_detail_page.dart
+│   │       ├── review_order_page.dart
+│   │       ├── claim_apply_page.dart
+│   │       ├── pending_payment_page.dart
+│   │       ├── payment_success_page.dart
+│   │       ├── order_date_edit_page.dart
+│   │       ├── order_service_edit_page.dart
+│   │       ├── order_address_edit_page.dart
+│   │       ├── refund_apply_page.dart
+│   │       └── refund_detail_page.dart
+│   │
+│   ├── manage/                       # 🛠️ packageManage
+│   │   └── presentation/pages/
+│   │       ├── address_list_page.dart
+│   │       ├── address_edit_page.dart
+│   │       ├── pet_add_page.dart
+│   │       ├── pet_detail_page.dart
+│   │       ├── provider_order_detail_page.dart
+│   │       ├── petsitter_application_page.dart
+│   │       ├── petsitter_list_page.dart
+│   │       ├── service_manage_page.dart
+│   │       ├── service_publish_page.dart
+│   │       └── deposit_page.dart
+│   │
+│   └── user/                         # 👤 packageUser
+│       └── presentation/pages/
+│           ├── user_profile_page.dart
+│           ├── identity_verification_page.dart
+│           ├── phone_change_page.dart
+│           ├── wallet_page.dart
+│           ├── withdraw_page.dart
+│           ├── stored_card_page.dart
+│           ├── insurance_page.dart
+│           ├── agreement_page.dart
+│           ├── platform_rules_page.dart
+│           ├── about_page.dart
+│           ├── customer_service_page.dart
+│           ├── coupons_page.dart
+│           ├── favorites_page.dart
+│           ├── face_verify_page.dart
+│           ├── wallet_detail_page.dart
+│           └── member_center_page.dart
+│
+└── shared/
+    ├── widgets/
+    │   ├── pet_owner_shell.dart       # 宠物主 TabBar Shell
+    │   ├── provider_shell.dart        # 看护师 TabBar Shell
+    │   └── theme_switcher_widget.dart
+    └── providers/
+        └── user_provider.dart
+```
+
+---
+
+## 二、主题切换系统
+
+```dart
+// core/theme/app_colors.dart
+class AppColors {
+  // 品牌色
+  static const primary = Color(0xFF4CAF82);
+  static const primaryDark = Color(0xFF2E7D5A);
+
+  // Light 主题
+  static const lightBackground = Color(0xFFF8F9FA);
+  static const lightSurface = Color(0xFFFFFFFF);
+  static const lightText = Color(0xFF1A1A2E);
+
+  // Dark 主题
+  static const darkBackground = Color(0xFF121212);
+  static const darkSurface = Color(0xFF1E1E1E);
+  static const darkText = Color(0xFFE8E8E8);
+}
+```
+
+```dart
+// core/theme/app_theme.dart
+class AppTheme {
+  static ThemeData light() => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.light,
+    ),
+    scaffoldBackgroundColor: AppColors.lightBackground,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.lightSurface,
+      foregroundColor: AppColors.lightText,
+      elevation: 0,
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.lightSurface,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: Color(0xFF9E9E9E),
+    ),
+  );
+
+  static ThemeData dark() => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.dark,
+    ),
+    scaffoldBackgroundColor: AppColors.darkBackground,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.darkSurface,
+      foregroundColor: AppColors.darkText,
+      elevation: 0,
+    ),
+  );
+}
+```
+
+```dart
+// core/theme/theme_provider.dart
+enum AppThemeMode { light, dark, system }
+
+@riverpod
+class ThemeNotifier extends _$ThemeNotifier {
+  static const _key = 'theme_mode';
+
+  @override
+  AppThemeMode build() {
+    _loadFromStorage();
+    return AppThemeMode.system; // 默认跟随系统
+  }
+
+  Future<void> _loadFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_key);
+    if (saved != null) {
+      state = AppThemeMode.values.byName(saved);
+    }
+  }
+
+  Future<void> setTheme(AppThemeMode mode) async {
+    state = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, mode.name);
+  }
+
+  ThemeMode get flutterThemeMode => switch (state) {
+    AppThemeMode.light  => ThemeMode.light,
+    AppThemeMode.dark   => ThemeMode.dark,
+    AppThemeMode.system => ThemeMode.system,
+  };
+}
+```
+
+---
+
+## 三、i18n 国际化系统
+
+**pubspec.yaml**
+```yaml
+dependencies:
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+
+flutter:
+  generate: true   # 开启 arb 自动生成
+
+  # l10n.yaml 配置
+```
+
+**l10n.yaml**
+```yaml
+arb-dir: lib/core/i18n/l10n
+template-arb-file: app_zh.arb
+output-localization-file: app_localizations.dart
+output-class: S
+```
+
+**lib/core/i18n/l10n/app_zh.arb**
+```json
+{
+  "@@locale": "zh",
+  "appName": "萌宠寄养",
+  "tabHome": "首页",
+  "tabPets": "宠物",
+  "tabChat": "聊天",
+  "tabMy": "我的",
+  "tabProviderHome": "看护师首页",
+  "tabWorkbench": "工作台",
+  "loginTitle": "欢迎登录",
+  "loginPhone": "手机号登录",
+  "loginWechat": "微信登录",
+  "orderTitle": "我的订单",
+  "orderPending": "待付款",
+  "orderInProgress": "进行中",
+  "orderCompleted": "已完成",
+  "orderCancelled": "已取消",
+  "petAdd": "添加宠物",
+  "petName": "宠物名称",
+  "petBreed": "品种",
+  "walletTitle": "我的钱包",
+  "walletBalance": "余额",
+  "walletWithdraw": "提现",
+  "clockinTitle": "打卡",
+  "clockinIn": "签到",
+  "clockinOut": "签退",
+  "themeLight": "浅色模式",
+  "themeDark": "深色模式",
+  "themeSystem": "跟随系统",
+  "langZh": "中文",
+  "langEn": "English",
+  "settingsTitle": "设置",
+  "search": "搜索附近看护师",
+  "serviceSelect": "选择服务",
+  "checkout": "结算",
+  "reviewOrder": "评价订单",
+  "refundApply": "申请退款",
+  "identityVerify": "实名认证",
+  "faceVerify": "人脸识别",
+  "insurance": "宠物保险",
+  "coupons": "优惠券",
+  "memberCenter": "会员中心",
+  "customerService": "联系客服",
+  "about": "关于我们",
+  "petsitterApply": "申请成为看护师",
+  "serviceManage": "服务管理",
+  "servicePublish": "发布服务"
+}
+```
+
+**lib/core/i18n/l10n/app_en.arb**
+```json
+{
+  "@@locale": "en",
+  "appName": "PetCare",
+  "tabHome": "Home",
+  "tabPets": "Pets",
+  "tabChat": "Chat",
+  "tabMy": "Mine",
+  "tabProviderHome": "Dashboard",
+  "tabWorkbench": "Workbench",
+  "loginTitle": "Welcome",
+  "loginPhone": "Phone Login",
+  "loginWechat": "WeChat Login",
+  "orderTitle": "My Orders",
+  "orderPending": "Pending",
+  "orderInProgress": "In Progress",
+  "orderCompleted": "Completed",
+  "orderCancelled": "Cancelled",
+  "petAdd": "Add Pet",
+  "petName": "Pet Name",
+  "petBreed": "Breed",
+  "walletTitle": "Wallet",
+  "walletBalance": "Balance",
+  "walletWithdraw": "Withdraw",
+  "clockinTitle": "Clock In",
+  "clockinIn": "Check In",
+  "clockinOut": "Check Out",
+  "themeLight": "Light Mode",
+  "themeDark": "Dark Mode",
+  "themeSystem": "System Default",
+  "langZh": "中文",
+  "langEn": "English",
+  "settingsTitle": "Settings",
+  "search": "Find nearby sitters",
+  "serviceSelect": "Select Service",
+  "checkout": "Checkout",
+  "reviewOrder": "Review Order",
+  "refundApply": "Apply Refund",
+  "identityVerify": "ID Verification",
+  "faceVerify": "Face Verify",
+  "insurance": "Pet Insurance",
+  "coupons": "Coupons",
+  "memberCenter": "Member Center",
+  "customerService": "Customer Service",
+  "about": "About Us",
+  "petsitterApply": "Apply as Sitter",
+  "serviceManage": "Service Management",
+  "servicePublish": "Publish Service"
+}
+```
+
+```dart
+// core/i18n/locale_provider.dart
+@riverpod
+class LocaleNotifier extends _$LocaleNotifier {
+  static const _key = 'locale';
+
+  @override
+  Locale build() {
+    _loadFromStorage();
+    return const Locale('zh'); // 默认中文
+  }
+
+  Future<void> _loadFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final code = prefs.getString(_key);
+    if (code != null) state = Locale(code);
+  }
+
+  Future<void> setLocale(Locale locale) async {
+    state = locale;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, locale.languageCode);
+  }
+
+  // 支持的语言
+  static const supportedLocales = [Locale('zh'), Locale('en')];
+}
+```
+
+---
+
+## 四、app.dart — 整合主题 + i18n
+
+```dart
+// app/app.dart
+@riverpod
+Widget app(AppRef ref) => const _App();
+
+class _App extends ConsumerWidget {
+  const _App();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router    = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeNotifierProvider).flutterThemeMode;
+    final locale    = ref.watch(localeNotifierProvider);
+
+    return MaterialApp.router(
+      // 路由
+      routerConfig: router,
+
+      // 主题
+      theme:      AppTheme.light(),
+      darkTheme:  AppTheme.dark(),
+      themeMode:  themeMode,
+
+      // 国际化
+      locale: locale,
+      supportedLocales: LocaleNotifier.supportedLocales,
+      localizationsDelegates: const [
+        S.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+```
+
+---
+
+## 五、双角色路由（go_router）
+
+```dart
+// app/router/app_router.dart
+@riverpod
+GoRouter router(RouterRef ref) {
+  final user = ref.watch(userNotifierProvider);
+
+  return GoRouter(
+    initialLocation: '/welcome',
+    redirect: (context, state) {
+      final isLoggedIn = user != null;
+      final isAuthRoute = state.matchedLocation.startsWith('/welcome') ||
+                          state.matchedLocation.startsWith('/login');
+      if (!isLoggedIn && !isAuthRoute) return '/welcome';
+      if (isLoggedIn && isAuthRoute) {
+        return user.role == UserRole.petOwner ? '/home' : '/provider-home';
+      }
+      return null;
+    },
+    routes: [
+      // ─── Auth ───────────────────────────────────
+      GoRoute(path: '/welcome',     builder: (_, __) => const WelcomePage()),
+      GoRoute(path: '/login',       builder: (_, __) => const LoginPage()),
+      GoRoute(path: '/login-phone', builder: (_, __) => const LoginPhonePage()),
+
+      // ─── 宠物主 Shell (4 tabs) ───────────────────
+      ShellRoute(
+        builder: (_, __, child) => PetOwnerShell(child: child),
+        routes: [
+          GoRoute(path: '/home',   builder: (_, __) => const HomePage()),
+          GoRoute(path: '/pets',   builder: (_, __) => const PetsPage()),
+          GoRoute(path: '/chat',   builder: (_, __) => const ChatPage()),
+          GoRoute(path: '/my',     builder: (_, __) => const MyPage()),
+        ],
+      ),
+
+      // ─── 看护师 Shell (2 tabs) ───────────────────
+      ShellRoute(
+        builder: (_, __, child) => ProviderShell(child: child),
+        routes: [
+          GoRoute(path: '/provider-home', builder: (_, __) => const ProviderHomePage()),
+          GoRoute(path: '/work-tab',      builder: (_, __) => const WorkTabPage()),
+        ],
+      ),
+
+      // ─── packageUser ────────────────────────────
+      GoRoute(path: '/user-profile',          builder: (_, __) => const UserProfilePage()),
+      GoRoute(path: '/identity-verification', builder: (_, __) => const IdentityVerificationPage()),
+      GoRoute(path: '/phone-change',          builder: (_, __) => const PhoneChangePage()),
+      GoRoute(path: '/wallet',                builder: (_, __) => const WalletPage()),
+      GoRoute(path: '/wallet-detail',         builder: (_, __) => const WalletDetailPage()),
+      GoRoute(path: '/withdraw',              builder: (_, __) => const WithdrawPage()),
+      GoRoute(path: '/stored-card',           builder: (_, __) => const StoredCardPage()),
+      GoRoute(path: '/insurance',             builder: (_, __) => const InsurancePage()),
+      GoRoute(path: '/coupons',               builder: (_, __) => const CouponsPage()),
+      GoRoute(path: '/favorites',             builder: (_, __) => const FavoritesPage()),
+      GoRoute(path: '/face-verify',           builder: (_, __) => const FaceVerifyPage()),
+      GoRoute(path: '/member-center',         builder: (_, __) => const MemberCenterPage()),
+      GoRoute(path: '/customer-service',      builder: (_, __) => const CustomerServicePage()),
+      GoRoute(path: '/agreement',             builder: (_, __) => const AgreementPage()),
+      GoRoute(path: '/platform-rules',        builder: (_, __) => const PlatformRulesPage()),
+      GoRoute(path: '/about',                 builder: (_, __) => const AboutPage()),
+
+      // ─── packageOrder ───────────────────────────
+      GoRoute(path: '/order',                 builder: (_, __) => const OrderPage()),
+      GoRoute(path: '/provider-detail/:id',   builder: (_, s) => ProviderDetailPage(id: s.pathParameters['id']!)),
+      GoRoute(path: '/select-service',        builder: (_, __) => const SelectServicePage()),
+      GoRoute(path: '/checkout',              builder: (_, __) => const CheckoutPage()),
+      GoRoute(path: '/order-detail/:id',      builder: (_, s) => OrderDetailPage(id: s.pathParameters['id']!)),
+      GoRoute(path: '/review-order/:id',      builder: (_, s) => ReviewOrderPage(id: s.pathParameters['id']!)),
+      GoRoute(path: '/claim-apply',           builder: (_, __) => const ClaimApplyPage()),
+      GoRoute(path: '/pending-payment',       builder: (_, __) => const PendingPaymentPage()),
+      GoRoute(path: '/payment-success',       builder: (_, __) => const PaymentSuccessPage()),
+      GoRoute(path: '/order-date-edit',       builder: (_, __) => const OrderDateEditPage()),
+      GoRoute(path: '/order-service-edit',    builder: (_, __) => const OrderServiceEditPage()),
+      GoRoute(path: '/order-address-edit',    builder: (_, __) => const OrderAddressEditPage()),
+      GoRoute(path: '/refund-apply',          builder: (_, __) => const RefundApplyPage()),
+      GoRoute(path: '/refund-detail/:id',     builder: (_, s) => RefundDetailPage(id: s.pathParameters['id']!)),
+
+      // ─── packageManage ──────────────────────────
+      GoRoute(path: '/address-list',          builder: (_, __) => const AddressListPage()),
+      GoRoute(path: '/address-edit',          builder: (_, __) => const AddressEditPage()),
+      GoRoute(path: '/pet-add',               builder: (_, __) => const PetAddPage()),
+      GoRoute(path: '/pet-detail/:id',        builder: (_, s) => PetDetailPage(id: s.pathParameters['id']!)),
+      GoRoute(path: '/provider-order-detail', builder: (_, __) => const ProviderOrderDetailPage()),
+      GoRoute(path: '/petsitter-application', builder: (_, __) => const PetsitterApplicationPage()),
+      GoRoute(path: '/petsitter-list',        builder: (_, __) => const PetsitterListPage()),
+      GoRoute(path: '/service-manage',        builder: (_, __) => const ServiceManagePage()),
+      GoRoute(path: '/service-publish',       builder: (_, __) => const ServicePublishPage()),
+      GoRoute(path: '/deposit',               builder: (_, __) => const DepositPage()),
+
+      // ─── packageProvider ────────────────────────
+      GoRoute(path: '/clockin',               builder: (_, __) => const ClockinPage()),
+      GoRoute(path: '/report-issue',          builder: (_, __) => const ReportIssuePage()),
+      GoRoute(path: '/clockin-record',        builder: (_, __) => const ClockinRecordPage()),
+      GoRoute(path: '/clockin-tasks',         builder: (_, __) => const ClockinTasksPage()),
+      GoRoute(path: '/clockin-task-detail/:id', builder: (_, s) => ClockinTaskDetailPage(id: s.pathParameters['id']!)),
+
+      // ─── 其他 ────────────────────────────────────
+      GoRoute(path: '/search',                builder: (_, __) => const SearchPage()),
+      GoRoute(path: '/services',              builder: (_, __) => const ServicesPage()),
+      GoRoute(path: '/chatroom/:id',          builder: (_, s) => ChatroomPage(id: s.pathParameters['id']!)),
+    ],
+  );
+}
+```
+
+---
+
+## 六、设置页（主题 + 语言切换 UI）
+
+```dart
+// shared/widgets/settings_bottom_sheet.dart
+class SettingsBottomSheet extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s          = S.of(context);
+    final themeState = ref.watch(themeNotifierProvider);
+    final locale     = ref.watch(localeNotifierProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(s.settingsTitle, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 20),
+
+          // ── 主题切换 ─────────────────────────────
+          Text('主题'),
+          const SizedBox(height: 8),
+          SegmentedButton<AppThemeMode>(
+            segments: [
+              ButtonSegment(value: AppThemeMode.light,  label: Text(s.themeLight), icon: Icon(Icons.light_mode)),
+              ButtonSegment(value: AppThemeMode.dark,   label: Text(s.themeDark),  icon: Icon(Icons.dark_mode)),
+              ButtonSegment(value: AppThemeMode.system, label: Text(s.themeSystem),icon: Icon(Icons.brightness_auto)),
+            ],
+            selected: {themeState},
+            onSelectionChanged: (modes) =>
+              ref.read(themeNotifierProvider.notifier).setTheme(modes.first),
+          ),
+
+          const SizedBox(height: 24),
+
+          // ── 语言切换 ─────────────────────────────
+          Text('语言 / Language'),
+          const SizedBox(height: 8),
+          SegmentedButton<Locale>(
+            segments: [
+              ButtonSegment(value: const Locale('zh'), label: Text(s.langZh)),
+              ButtonSegment(value: const Locale('en'), label: Text(s.langEn)),
+            ],
+            selected: {locale},
+            onSelectionChanged: (locales) =>
+              ref.read(localeNotifierProvider.notifier).setLocale(locales.first),
+          ),
+
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+```
+
+---
+
+## 七、页面中使用 i18n
+
+```dart
+// 任意页面使用翻译
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context); // 获取翻译
+    return Scaffold(
+      appBar: AppBar(title: Text(s.tabHome)),
+      body: Text(s.search),
+    );
+  }
+}
+```
+
+---
+
+## 八、pubspec.yaml 完整依赖
+
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # 状态管理
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # 路由
+  go_router: ^13.2.0
+
+  # 网络
+  dio: ^5.4.3
+  retrofit: ^4.1.0
+
+  # 本地存储
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # 国际化
+  intl: ^0.19.0
+
+  # Model 生成
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+
+  # 地图
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+
+  # 图片
+  image_picker: ^1.0.7
+  cached_network_image: ^3.3.1
+
+  # 权限
+  permission_handler: ^11.3.1
+
+  # UI
+  shimmer: ^3.0.0
+
+dev_dependencies:
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+  retrofit_generator: ^8.1.0
+```
+
+---
+
+## 架构总览图
+
+```
+┌─────────────────────────────────────────┐
+│              MaterialApp.router          │
+│         theme: Light/Dark/System         │
+│         locale: zh/en/ja...             │
+└──────────────┬──────────────────────────┘
+               │ GoRouter
+    ┌──────────┴──────────┐
+    │                     │
+┌───▼───────┐      ┌──────▼──────┐
+│ PetOwner  │      │  Provider   │
+│   Shell   │      │   Shell     │
+│ 4 tabs    │      │  2 tabs     │
+└───┬───────┘      └──────┬──────┘
+    │                     │
+ home/pets/           provider-home/
+ chat/my              work-tab
+    │
+    └── 所有子页面通过 GoRoute 跳转
+        packageUser / packageOrder /
+        packageManage / packageProvider
+```
+
+这套架构完整覆盖了你小程序的所有页面，同时具备：
+
+- **主题切换** — Light / Dark / 跟随系统，持久化存储
+- **i18n** — 中英文（可随时扩展日韩等），持久化存储
+- **双角色路由** — 登录后根据角色自动分流到对应 Shell
+- **懒加载** — 对应小程序的分包加载，通过 go_router 按需跳转实现
