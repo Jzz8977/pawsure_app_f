@@ -44,6 +44,9 @@ dependencies:
   shimmer: ^3.0.0
   flutter_svg: ^2.0.10
 
+  # 加密
+  encrypt: ^5.0.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -60,5 +63,6 @@ flutter:
   assets:
     - assets/images/
     - assets/images/tabbar/
+    - assets/images/login/
     - assets/icons/
 
