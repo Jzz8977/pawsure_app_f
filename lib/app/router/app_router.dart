@@ -158,7 +158,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ─── packageManage ────────────────────────────────────
       GoRoute(path: '/address-list', builder: (_, _s) => const AddressListPage()),
-      GoRoute(path: '/address-edit', builder: (_, _s) => const AddressEditPage()),
+      GoRoute(path: '/address-edit', builder: (_, s) => AddressEditPage(id: s.uri.queryParameters['id'])),
       GoRoute(path: '/pet-add', builder: (_, _s) => const PetAddPage()),
       GoRoute(path: '/pet-detail/:id', builder: (_, s) => PetDetailPage(id: s.pathParameters['id']!)),
       GoRoute(path: '/provider-order-detail', builder: (_, _s) => const ProviderOrderDetailPage()),
