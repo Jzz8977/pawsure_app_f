@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pawsure_app/shared/providers/user_provider.dart';
+import 'package:pawsure_app/shared/widgets/app_nav_bar.dart';
 
 // ─── Data model ──────────────────────────────────────────────────
 
@@ -40,38 +41,37 @@ class _MyPageState extends ConsumerState<MyPage> {
     final isProvider = user?.role == UserRole.provider;
 
     return Scaffold(
+      appBar: AppNavBar(title: '我的', showBack: false),
       backgroundColor: const Color(0xFFEFF1F4),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(child: _buildHeader(context, user, isProvider)),
-          SliverToBoxAdapter(
-              child: _buildMemberSection(context, user, isProvider)),
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-          SliverToBoxAdapter(child: _buildOrderCard(context, isProvider)),
-          if (!isProvider) ...[
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-            SliverToBoxAdapter(child: _buildAccountCard(context)),
-          ],
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-          SliverToBoxAdapter(child: _buildAboutCard(context, isProvider)),
-          if (user != null) ...[
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            SliverToBoxAdapter(
-              child: Padding(
+      body: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        child: Column(
+          children: [
+            _buildHeader(context, user, isProvider),
+            _buildMemberSection(context, user, isProvider),
+            const SizedBox(height: 16),
+            _buildOrderCard(context, isProvider),
+            if (!isProvider) ...[
+              const SizedBox(height: 16),
+              _buildAccountCard(context),
+            ],
+            const SizedBox(height: 16),
+            _buildAboutCard(context, isProvider),
+            if (user != null) ...[
+              const SizedBox(height: 24),
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: _buildRoleSwitchCard(context, isProvider),
               ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 8)),
-            SliverToBoxAdapter(
-              child: Padding(
+              const SizedBox(height: 8),
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: _buildLogoutButton(context),
               ),
-            ),
+            ],
+            const SizedBox(height: 110),
           ],
-          const SliverToBoxAdapter(child: SizedBox(height: 110)),
-        ],
+        ),
       ),
     );
   }
@@ -80,39 +80,28 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   Widget _buildHeader(
       BuildContext context, UserModel? user, bool isProvider) {
-    final topPad = MediaQuery.of(context).padding.top;
-    return Stack(
-      children: [
-        Container(
-          height: topPad + 176,
-          decoration: const BoxDecoration(
-            gradient: _gradientHeader,
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
-            ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => context.push('/user-profile'),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+        decoration: const BoxDecoration(
+          gradient: _gradientHeader,
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(12),
+            bottomRight: Radius.circular(12),
           ),
         ),
-        SafeArea(
-          bottom: false,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => context.push('/user-profile'),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-              child: Row(
-                children: [
-                  _buildAvatar(user),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildNameCol(user)),
-                  const SizedBox(width: 12),
-                  _buildServiceBtn(context),
-                ],
-              ),
-            ),
-          ),
+        child: Row(
+          children: [
+            _buildAvatar(user),
+            const SizedBox(width: 12),
+            Expanded(child: _buildNameCol(user)),
+            const SizedBox(width: 12),
+            _buildServiceBtn(context),
+          ],
         ),
-      ],
+      ),
     );
   }
 
