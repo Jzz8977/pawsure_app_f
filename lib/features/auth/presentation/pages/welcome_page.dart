@@ -43,24 +43,7 @@ class WelcomePage extends StatelessWidget {
                   child: const Text('手机号登录',
                       style: TextStyle(fontSize: 16)),
                 ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => context.push('/login'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('其他登录方式',
-                      style: TextStyle(fontSize: 16)),
-                ),
-              ),
-              const SizedBox(height: 48),
+              )
             ],
           ),
         ),

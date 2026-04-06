@@ -7,7 +7,6 @@ import '../../shared/widgets/app_shell.dart';
 
 // Auth
 import '../../features/auth/presentation/pages/welcome_page.dart';
-import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/login_phone_page.dart';
 
 // Pet Owner
@@ -94,7 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = user != null;
       final loc = state.matchedLocation;
       final isAuthRoute =
-          loc.startsWith('/welcome') || loc.startsWith('/login');
+          loc.startsWith('/welcome') || loc.startsWith('/login-phone');
 
       if (!isLoggedIn && !isAuthRoute) return '/welcome';
       if (isLoggedIn && isAuthRoute) {
@@ -105,7 +104,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       // ─── Auth ───────────────────────────────────────────────
       GoRoute(path: '/welcome', builder: (_, _s) => const WelcomePage()),
-      GoRoute(path: '/login', builder: (_, _s) => const LoginPage()),
       GoRoute(path: '/login-phone', builder: (_, _s) => const LoginPhonePage()),
 
       // ─── App Shell（宠物主 4 tabs / 看护师 4 tabs）─────────

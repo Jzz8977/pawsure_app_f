@@ -448,7 +448,7 @@ class _LoginPhonePageState extends ConsumerState<LoginPhonePage> {
   Widget _buildWeChatButton() {
     return Center(
       child: GestureDetector(
-        onTap: () => context.go('/login'),
+        onTap: () => {},
         child: Container(
           width: 60,
           height: 60,
