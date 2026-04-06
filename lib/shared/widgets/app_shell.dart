@@ -77,7 +77,8 @@ class _FloatingTabBar extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              height: 50,
+              width: 292,
+              height: 60,
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: const Color(0xFF535353).withValues(alpha: 0.28),
@@ -94,8 +95,8 @@ class _FloatingTabBar extends StatelessWidget {
                       onTap: () => onTap(i),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        width: 42,
-                        height: 42,
+                        width: 52,
+                        height: 52,
                         margin: EdgeInsets.only(left: i == 0 ? 0 : 4),
                         decoration: BoxDecoration(
                           color: isActive ? Colors.white : Colors.transparent,
@@ -104,8 +105,8 @@ class _FloatingTabBar extends StatelessWidget {
                         child: Center(
                           child: SvgPicture.asset(
                             isActive ? tabs[i].activeIcon : tabs[i].icon,
-                            width: 22,
-                            height: 22,
+                            width: 32,
+                            height: 32,
                           ),
                         ),
                       ),
