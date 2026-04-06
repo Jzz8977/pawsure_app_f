@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:pawsure_app/core/i18n/l10n/app_localizations.dart';
 
 class PetAddPage extends StatelessWidget {
-  const PetAddPage({super.key});
+  final String? id;
+  const PetAddPage({super.key, this.id});
 
   @override
   Widget build(BuildContext context) {

@@ -66,5 +66,7 @@ flutter:
     - assets/images/login/
     - assets/images/my/
     - assets/images/vip/
+    - assets/images/home/
+    - assets/images/pet/
     - assets/icons/
 
