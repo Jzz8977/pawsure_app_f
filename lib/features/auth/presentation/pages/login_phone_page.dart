@@ -301,7 +301,7 @@ class _LoginPhonePageState extends ConsumerState<LoginPhonePage> {
           // Logo 圆形图标
           ClipOval(
             child: SvgPicture.asset(
-              'assets/images/logo.svg',
+              'assets/icons/logo.svg',
               width: 85,
               height: 85,
               fit: BoxFit.cover,
