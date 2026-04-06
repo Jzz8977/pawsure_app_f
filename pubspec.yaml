@@ -64,5 +64,7 @@ flutter:
     - assets/images/
     - assets/images/tabbar/
     - assets/images/login/
+    - assets/images/my/
+    - assets/images/vip/
     - assets/icons/
 

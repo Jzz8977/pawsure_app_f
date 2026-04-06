@@ -193,6 +193,17 @@ class UserNotifier extends Notifier<UserModel?> {
     ref.read(secureStorageProvider).write(StorageKeys.avatarUrl, url);
   }
 
+  // ── 切换角色 ──────────────────────────────────────────────────
+
+  Future<void> switchRole() async {
+    if (state == null) return;
+    final newRole = state!.role == UserRole.petOwner
+        ? UserRole.provider
+        : UserRole.petOwner;
+    state = state!.copyWith(role: newRole);
+    await ref.read(secureStorageProvider).write(StorageKeys.userRole, newRole.name);
+  }
+
   // ── 登出 ─────────────────────────────────────────────────────
 
   Future<void> logout() async {
