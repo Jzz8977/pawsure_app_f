@@ -89,3 +89,35 @@ Use the relevant class from `api_constants.dart` and the `dioProvider`:
 final dio = ref.read(dioProvider);
 final response = await dio.post(AuthApi.phoneLogin, data: {...});
 ```
+
+### API Response Shape
+All endpoints return `{ success: bool, code: int, content: dynamic }`. Paginated lists return `content.records` (array) and `content.total` (int). Monetary values are always in **fen (分)** — divide by 100 for yuan display.
+
+### Shared Widgets
+
+**`AppNavBar`** (`shared/widgets/app_nav_bar.dart`)
+- Parameters: `title`, `backgroundColor`, `titleColor`, `backColor`, `showDivider`, `enableScrollEffect`
+- **Does NOT have a `bottom` parameter.** To add a TabBar below the nav bar, put it in a `Column` in `body`:
+```dart
+body: Column(children: [
+  Container(color: Colors.white, child: TabBar(controller: _tab, ...)),
+  Expanded(child: TabBarView(controller: _tab, children: [...])),
+])
+```
+
+**`FooterBar`** (`shared/widgets/footer_bar.dart`)
+- Parameters: `buttonText`, `buttonDisabled`, `amountLabel`, `totalAmount`, `onButtonTap`
+- Multi-button mode: pass `buttons: [FooterButton(...), ...]` instead
+
+**`CachedNetworkImage`**
+- Error callback is `errorWidget: (ctx, url, err) => ...` (NOT `errorBuilder` which is Flutter's `Image` widget API)
+
+### Cross-Feature Imports
+From `lib/features/<feature_A>/presentation/pages/`, reach another feature with three `../`:
+```dart
+// e.g., from user/presentation/pages/ → pet_owner feature
+import '../../../pet_owner/home/presentation/widgets/sitter_card.dart';
+```
+
+### UserModel Key Fields
+`id`, `name`, `displayPhone`, `phone`, `role` (`UserRole`), `avatarUrl`, `birthday` (String? ISO date), `isIdCertified` (bool), `sex` (0=unset, 1=male, 2=female), `vipExpireTime` (String?)
