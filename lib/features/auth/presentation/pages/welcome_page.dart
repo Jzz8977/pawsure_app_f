@@ -1,9 +1,38 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class WelcomePage extends StatelessWidget {
+class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
+
+  @override
+  State<WelcomePage> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomePage> {
+  int _seconds = 5;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_seconds <= 1) {
+        t.cancel();
+        if (mounted) context.push('/login-phone');
+      } else {
+        setState(() => _seconds--);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,21 +58,30 @@ class WelcomePage extends StatelessWidget {
               const Text('专业宠物寄养平台',
                   style: TextStyle(fontSize: 16, color: Colors.white70)),
               const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => context.push('/login-phone'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+              // 倒计时跳过按钮
+              Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  onTap: () {
+                    _timer?.cancel();
+                    context.push('/login-phone');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '跳过 $_seconds',
+                      style: const TextStyle(
+                          fontSize: 13, color: Colors.white),
+                    ),
                   ),
-                  child: const Text('手机号登录',
-                      style: TextStyle(fontSize: 16)),
                 ),
-              )
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
