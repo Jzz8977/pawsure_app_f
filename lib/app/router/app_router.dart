@@ -141,19 +141,44 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/about', builder: (_, _s) => const AboutPage()),
 
       // ─── packageOrder ─────────────────────────────────────
-      GoRoute(path: '/order', builder: (_, _s) => const OrderPage()),
+      GoRoute(path: '/order', builder: (_, s) => OrderPage(tab: s.uri.queryParameters['tab'])),
       GoRoute(path: '/provider-detail/:id', builder: (_, s) => ProviderDetailPage(id: s.pathParameters['id']!)),
-      GoRoute(path: '/select-service', builder: (_, _s) => const SelectServicePage()),
+      GoRoute(path: '/select-service', builder: (_, s) => SelectServicePage(providerId: s.uri.queryParameters['providerId'])),
       GoRoute(path: '/checkout', builder: (_, _s) => const CheckoutPage()),
       GoRoute(path: '/order-detail/:id', builder: (_, s) => OrderDetailPage(id: s.pathParameters['id']!)),
       GoRoute(path: '/review-order/:id', builder: (_, s) => ReviewOrderPage(id: s.pathParameters['id']!)),
-      GoRoute(path: '/claim-apply', builder: (_, _s) => const ClaimApplyPage()),
-      GoRoute(path: '/pending-payment', builder: (_, _s) => const PendingPaymentPage()),
-      GoRoute(path: '/payment-success', builder: (_, _s) => const PaymentSuccessPage()),
-      GoRoute(path: '/order-date-edit', builder: (_, _s) => const OrderDateEditPage()),
-      GoRoute(path: '/order-service-edit', builder: (_, _s) => const OrderServiceEditPage()),
-      GoRoute(path: '/order-address-edit', builder: (_, _s) => const OrderAddressEditPage()),
-      GoRoute(path: '/refund-apply', builder: (_, _s) => const RefundApplyPage()),
+      GoRoute(path: '/claim-apply', builder: (_, s) => ClaimApplyPage(orderId: s.uri.queryParameters['orderId'])),
+      GoRoute(
+        path: '/pending-payment',
+        builder: (_, s) => PendingPaymentPage(
+          orderNo: s.uri.queryParameters['orderNo'],
+          orderId: s.uri.queryParameters['orderId'],
+          payAmount: s.uri.queryParameters['payAmount'],
+        ),
+      ),
+      GoRoute(
+        path: '/payment-success',
+        builder: (_, s) => PaymentSuccessPage(
+          orderNo: s.uri.queryParameters['orderNo'],
+          amount: s.uri.queryParameters['amount'],
+        ),
+      ),
+      GoRoute(path: '/order-date-edit', builder: (_, s) => OrderDateEditPage(orderId: s.uri.queryParameters['orderId'])),
+      GoRoute(path: '/order-service-edit', builder: (_, s) => OrderServiceEditPage(orderId: s.uri.queryParameters['orderId'])),
+      GoRoute(
+        path: '/order-address-edit',
+        builder: (_, s) => OrderAddressEditPage(
+          orderId: s.uri.queryParameters['orderId'],
+          orderNo: s.uri.queryParameters['orderNo'],
+        ),
+      ),
+      GoRoute(
+        path: '/refund-apply',
+        builder: (_, s) => RefundApplyPage(
+          orderId: s.uri.queryParameters['orderId'],
+          orderNo: s.uri.queryParameters['orderNo'],
+        ),
+      ),
       GoRoute(path: '/refund-detail/:id', builder: (_, s) => RefundDetailPage(id: s.pathParameters['id']!)),
 
       // ─── packageManage ────────────────────────────────────
@@ -162,18 +187,67 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/pet-add', builder: (_, s) => PetAddPage(id: s.uri.queryParameters['id'])),
       GoRoute(path: '/pet-detail/:id', builder: (_, s) => PetDetailPage(id: s.pathParameters['id']!)),
       GoRoute(path: '/provider-order-detail', builder: (_, _s) => const ProviderOrderDetailPage()),
-      GoRoute(path: '/petsitter-application', builder: (_, _s) => const PetsitterApplicationPage()),
+      GoRoute(
+        path: '/petsitter-application',
+        builder: (_, s) => PetsitterApplicationPage(
+          id: s.uri.queryParameters['id'],
+          mode: s.uri.queryParameters['mode'],
+        ),
+      ),
       GoRoute(path: '/petsitter-list', builder: (_, _s) => const PetsitterListPage()),
       GoRoute(path: '/service-manage', builder: (_, _s) => const ServiceManagePage()),
       GoRoute(path: '/service-publish', builder: (_, _s) => const ServicePublishPage()),
       GoRoute(path: '/deposit', builder: (_, _s) => const DepositPage()),
 
       // ─── packageProvider ──────────────────────────────────
-      GoRoute(path: '/clockin', builder: (_, _s) => const ClockinPage()),
-      GoRoute(path: '/report-issue', builder: (_, _s) => const ReportIssuePage()),
-      GoRoute(path: '/clockin-record', builder: (_, _s) => const ClockinRecordPage()),
-      GoRoute(path: '/clockin-tasks', builder: (_, _s) => const ClockinTasksPage()),
-      GoRoute(path: '/clockin-task-detail/:id', builder: (_, s) => ClockinTaskDetailPage(id: s.pathParameters['id']!)),
+      GoRoute(
+        path: '/clockin',
+        builder: (_, s) => ClockinPage(
+          orderNo:     s.uri.queryParameters['orderNo'],
+          orderId:     s.uri.queryParameters['orderId'],
+          taskId:      s.uri.queryParameters['taskId'],
+          providerId:  s.uri.queryParameters['providerId'],
+          customerId:  s.uri.queryParameters['customerId'],
+          serviceType: s.uri.queryParameters['serviceType'],
+          petId:       s.uri.queryParameters['petId'],
+        ),
+      ),
+      GoRoute(
+        path: '/report-issue',
+        builder: (_, s) => ReportIssuePage(
+          orderNo:     s.uri.queryParameters['orderNo'],
+          providerId:  s.uri.queryParameters['providerId'],
+          customerId:  s.uri.queryParameters['customerId'],
+          serviceType: s.uri.queryParameters['serviceType'],
+        ),
+      ),
+      GoRoute(
+        path: '/clockin-record',
+        builder: (_, s) => ClockinRecordPage(orderNo: s.uri.queryParameters['orderNo']),
+      ),
+      GoRoute(
+        path: '/clockin-tasks',
+        builder: (_, s) => ClockinTasksPage(
+          orderNo:    s.uri.queryParameters['orderNo'],
+          orderId:    s.uri.queryParameters['orderId'],
+          customerId: s.uri.queryParameters['customerId'],
+          providerId: s.uri.queryParameters['providerId'],
+        ),
+      ),
+      GoRoute(
+        path: '/clockin-task-detail/:id',
+        builder: (_, s) => ClockinTaskDetailPage(
+          id:          s.pathParameters['id']!,
+          orderNo:     s.uri.queryParameters['orderNo'],
+          orderId:     s.uri.queryParameters['orderId'],
+          serviceType: s.uri.queryParameters['serviceType'],
+          providerId:  s.uri.queryParameters['providerId'],
+          customerId:  s.uri.queryParameters['customerId'],
+          status:      s.uri.queryParameters['status'],
+          planDate:    s.uri.queryParameters['planDate'],
+          planHour:    s.uri.queryParameters['planHour'],
+        ),
+      ),
 
       // ─── 其他 ─────────────────────────────────────────────
       GoRoute(path: '/search', builder: (_, _s) => const SearchPage()),
