@@ -4,10 +4,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/constants/api_constants.dart';
 import '../../../../../core/network/dio_client.dart';
+import '../../../../../core/network/file_url_resolver.dart';
 import '../../../../../shared/widgets/app_nav_bar.dart';
 import '../widgets/sitter_card.dart';
 
@@ -52,11 +54,39 @@ class _HomePageState extends ConsumerState<HomePage> {
   int _pages = 1;
   bool _loadingList = false;
 
+  double? _userLat;
+  double? _userLng;
+
   @override
   void initState() {
     super.initState();
     _scrollCtrl.addListener(_onScroll);
     _loadBanners();
+    _fetchLocationThenList();
+  }
+
+  // 先尝试获取 GPS 位置，再加载看护师列表
+  Future<void> _fetchLocationThenList() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      LocationPermission perm = permission;
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.whileInUse ||
+          perm == LocationPermission.always) {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.low,
+            timeLimit: Duration(seconds: 5),
+          ),
+        );
+        _userLat = pos.latitude;
+        _userLng = pos.longitude;
+      }
+    } catch (_) {
+      // 无权限或获取失败 — 不传坐标正常请求
+    }
     _loadList(reset: true);
   }
 
@@ -80,17 +110,31 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _loadBanners() async {
     try {
-      final res = await ref.read(dioProvider).post(LibApi.bannerList, data: {});
+      final dio = ref.read(dioProvider);
+      final res = await dio.post(LibApi.bannerList, data: {});
       final data = res.data as Map<String, dynamic>?;
       final raw = (data?['content'] as List<dynamic>?) ?? [];
+
+      // 解析 fileId → 可访问 URL
+      final fileIds = raw
+          .map((e) => (e as Map<String, dynamic>)['fileId']?.toString() ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      final urlMap = await resolveFileUrls(dio, fileIds);
+
       if (mounted) {
         setState(() {
           _banners = raw.map((e) {
             final m = e as Map<String, dynamic>;
+            final fileId = m['fileId']?.toString() ?? '';
+            final imageUrl = urlMap[fileId] ??
+                m['imageUrl'] as String? ??
+                m['fileUrl'] as String? ??
+                '';
             return _BannerItem(
               id: m['id']?.toString() ?? '',
-              imageUrl: m['imageUrl'] as String? ?? m['fileUrl'] as String? ?? '',
-              link: m['link'] as String? ?? '',
+              imageUrl: imageUrl,
+              link: m['linkUrl'] as String? ?? m['link'] as String? ?? '',
             );
           }).toList();
         });
@@ -108,7 +152,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     try {
       final res = await ref.read(dioProvider).post(
         ServicePublishApi.allPublished,
-        data: {'pageNo': nextPage, 'pageSize': 8},
+        data: {
+          'pageNo': nextPage,
+          'pageSize': 8,
+          if (_userLat != null) 'latitude': _userLat,
+          if (_userLng != null) 'longitude': _userLng,
+        },
       );
       final data = res.data as Map<String, dynamic>?;
       final success = data?['success'] == true || data?['code'] == 200;
@@ -126,9 +175,30 @@ class _HomePageState extends ConsumerState<HomePage> {
         rawList = content;
       }
 
-      final items = rawList
-          .map((e) => SitterItem.fromJson(e as Map<String, dynamic>))
-          .toList();
+      // 解析 thumbnailFileId / avatarFileId → URL
+      final dio = ref.read(dioProvider);
+      final fileIds = <String>[];
+      for (final e in rawList) {
+        final m = e as Map<String, dynamic>;
+        final t = m['thumbnailFileId']?.toString() ?? '';
+        final a = m['avatarFileId']?.toString() ?? '';
+        if (t.isNotEmpty) fileIds.add(t);
+        if (a.isNotEmpty) fileIds.add(a);
+      }
+      final urlMap = await resolveFileUrls(dio, fileIds);
+
+      final items = rawList.map((e) {
+        final m = e as Map<String, dynamic>;
+        final thumbId = m['thumbnailFileId']?.toString() ?? '';
+        final avatarId = m['avatarFileId']?.toString() ?? '';
+        return SitterItem.fromJson({
+          ...m,
+          if (thumbId.isNotEmpty && urlMap.containsKey(thumbId))
+            'thumbnailUrl': urlMap[thumbId],
+          if (avatarId.isNotEmpty && urlMap.containsKey(avatarId))
+            'avatarUrl': urlMap[avatarId],
+        });
+      }).toList();
 
       setState(() {
         _list = reset ? items : [..._list, ...items];

@@ -4,6 +4,12 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>TencentLBSAPIKey</key>
+	<string>RQ5BZ-XHCC7-J4KXA-H2SBF-57Q7H-JBBHF</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>需要访问您的位置以提供附近看护师推荐和地址填写功能</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>需要访问您的位置以提供附近看护师推荐和地址填写功能</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

@@ -6,6 +6,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../shared/widgets/app_nav_bar.dart';
 import '../../../../shared/widgets/footer_bar.dart';
+import 'location_pick_page.dart';
 
 // ── 表单状态 ──────────────────────────────────────────────────────
 
@@ -229,6 +230,42 @@ class _AddressEditPageState extends ConsumerState<AddressEditPage> {
     });
   }
 
+  // ── 地图选点 ─────────────────────────────────────────────────────
+
+  Future<void> _onPickLocation() async {
+    final initLat = double.tryParse(_form.latitude);
+    final initLng = double.tryParse(_form.longitude);
+
+    final result = await Navigator.push<LocationPickResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickPage(
+          initialLat: initLat,
+          initialLng: initLng,
+        ),
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    setState(() {
+      _form.latitude = result.latitude.toString();
+      _form.longitude = result.longitude.toString();
+      if (result.province.isNotEmpty) {
+        _form.province = result.province;
+        _errors.remove('province');
+      }
+      if (result.city.isNotEmpty) {
+        _form.city = result.city;
+        _errors.remove('city');
+      }
+      if (result.district.isNotEmpty) {
+        _form.district = result.district;
+        _errors.remove('district');
+      }
+    });
+  }
+
   // ── 工具 ────────────────────────────────────────────────────────
 
   void _showToast(String msg) {
@@ -316,40 +353,80 @@ class _AddressEditPageState extends ConsumerState<AddressEditPage> {
                   // ── 所在地区 + 详细地址 ────────────────────────
                   _FormCard(children: [
                     // 地区行
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _onPickRegion,
-                      child: _FieldRow(
-                        label: '所在地区',
-                        required: true,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                _form.province.isEmpty &&
-                                        _form.city.isEmpty &&
-                                        _form.district.isEmpty
-                                    ? '请选择省市区'
-                                    : '${_form.province} ${_form.city} ${_form.district}',
-                                textAlign: TextAlign.right,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: _form.province.isEmpty
-                                      ? const Color(0xFFBBBBBB)
-                                      : const Color(0xFF333333),
-                                ),
+                    _FieldRow(
+                      label: '所在地区',
+                      required: true,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // 地图选点按钮
+                          GestureDetector(
+                            onTap: _onPickLocation,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFF7E51).withAlpha(20),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                    color: const Color(0xFFFF7E51)
+                                        .withAlpha(80),
+                                    width: 0.8),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.map_outlined,
+                                      size: 13,
+                                      color: Color(0xFFFF7E51)),
+                                  SizedBox(width: 3),
+                                  Text('地图选点',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFF7E51))),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              size: 12,
-                              color: Color(0xFFCCCCCC),
+                          ),
+                          const SizedBox(width: 8),
+                          // 手动输入
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _onPickRegion,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 130),
+                                    child: Text(
+                                      _form.province.isEmpty &&
+                                              _form.city.isEmpty &&
+                                              _form.district.isEmpty
+                                          ? '手动输入'
+                                          : '${_form.province} ${_form.city} ${_form.district}',
+                                      textAlign: TextAlign.right,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: _form.province.isEmpty
+                                            ? const Color(0xFFBBBBBB)
+                                            : const Color(0xFF333333),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 12,
+                                  color: Color(0xFFCCCCCC),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                     if (_errors['province'] != null ||
@@ -358,6 +435,27 @@ class _AddressEditPageState extends ConsumerState<AddressEditPage> {
                       _ErrorTip(_errors['province'] ??
                           _errors['city'] ??
                           _errors['district']!),
+
+                    // 显示已选坐标
+                    if (_form.latitude.isNotEmpty &&
+                        _form.longitude.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Icon(Icons.my_location,
+                                size: 12, color: Color(0xFF999999)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${double.parse(_form.latitude).toStringAsFixed(5)}, '
+                              '${double.parse(_form.longitude).toStringAsFixed(5)}',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF999999)),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     const _RowDivider(),
 

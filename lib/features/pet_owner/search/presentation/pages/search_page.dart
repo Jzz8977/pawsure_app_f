@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../core/constants/api_constants.dart';
 import '../../../../../core/network/dio_client.dart';
+import '../../../../../core/network/file_url_resolver.dart';
 import '../../../home/presentation/widgets/sitter_card.dart';
 
 // ── 常量 ──────────────────────────────────────────────────────────
@@ -192,9 +193,30 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         rawList = content;
       }
 
-      final items = rawList
-          .map((e) => SitterItem.fromJson(e as Map<String, dynamic>))
-          .toList();
+      // 解析 thumbnailFileId / avatarFileId → URL
+      final dio = ref.read(dioProvider);
+      final fileIds = <String>[];
+      for (final e in rawList) {
+        final m = e as Map<String, dynamic>;
+        final t = m['thumbnailFileId']?.toString() ?? '';
+        final a = m['avatarFileId']?.toString() ?? '';
+        if (t.isNotEmpty) fileIds.add(t);
+        if (a.isNotEmpty) fileIds.add(a);
+      }
+      final urlMap = await resolveFileUrls(dio, fileIds);
+
+      final items = rawList.map((e) {
+        final m = e as Map<String, dynamic>;
+        final thumbId = m['thumbnailFileId']?.toString() ?? '';
+        final avatarId = m['avatarFileId']?.toString() ?? '';
+        return SitterItem.fromJson({
+          ...m,
+          if (thumbId.isNotEmpty && urlMap.containsKey(thumbId))
+            'thumbnailUrl': urlMap[thumbId],
+          if (avatarId.isNotEmpty && urlMap.containsKey(avatarId))
+            'avatarUrl': urlMap[avatarId],
+        });
+      }).toList();
 
       if (saveHistory) _saveToHistory(kw);
 

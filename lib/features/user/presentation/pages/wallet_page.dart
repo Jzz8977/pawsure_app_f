@@ -154,19 +154,20 @@ class _WalletPageState extends ConsumerState<WalletPage>
     setState(() => _listLoading = true);
     try {
       final res = await ref.read(dioProvider).post(
-        WalletApi.transactionList,
-        data: {'pageNum': _page, 'pageSize': 20, 'type': _filterKey == 'all' ? null : _filterKey},
+        WalletApi.recordPage,
+        data: {'pageNo': _page, 'pageSize': 20, 'type': _filterKey == 'all' ? null : _filterKey},
       );
       final data = res.data as Map<String, dynamic>?;
       final content = data?['content'] as Map<String, dynamic>?;
       final raw = (content?['records'] as List<dynamic>?) ?? [];
-      final total = (content?['total'] as num?)?.toInt() ?? 0;
+      final current = (content?['current'] as num?)?.toInt() ?? _page;
+      final pages = (content?['pages'] as num?)?.toInt() ?? 1;
       final items = raw.map((e) => _Record.fromJson(e as Map<String, dynamic>)).toList();
       if (mounted) {
         setState(() {
           _records.addAll(items);
-          _page++;
-          _finished = _records.length >= total;
+          _page = current + 1;
+          _finished = current >= pages;
         });
       }
     } catch (_) {

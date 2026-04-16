@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../../core/constants/api_constants.dart';
 import '../../../../../core/network/dio_client.dart';
+import '../../../../../core/network/file_url_resolver.dart';
 import '../../../../../shared/widgets/app_nav_bar.dart';
 
 // ── 宠物模型 ──────────────────────────────────────────────────────
@@ -115,14 +116,28 @@ class _PetsPageState extends ConsumerState<PetsPage> {
     if (_loading) return;
     setState(() => _loading = true);
     try {
-      final res = await ref.read(dioProvider).post(PetApi.pageQuery, data: {});
+      final dio = ref.read(dioProvider);
+      final res = await dio.post(PetApi.pageQuery, data: {});
       final data = res.data as Map<String, dynamic>?;
       final raw = (data?['content'] as List<dynamic>?) ?? [];
+
+      // 解析宠物头像 fileId → URL（API 返回 avatar 字段为 fileId）
+      final fileIds = raw
+          .map((e) => (e as Map<String, dynamic>)['avatar']?.toString() ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      final urlMap = await resolveFileUrls(dio, fileIds);
+
       if (mounted) {
         setState(() {
-          _pets = raw
-              .map((e) => _Pet.fromJson(e as Map<String, dynamic>))
-              .toList();
+          _pets = raw.map((e) {
+            final m = e as Map<String, dynamic>;
+            final avatarId = m['avatar']?.toString() ?? '';
+            return _Pet.fromJson({
+              ...m,
+              'avatarUrl': urlMap[avatarId] ?? m['avatarUrl'] ?? '',
+            });
+          }).toList();
         });
       }
     } catch (_) {

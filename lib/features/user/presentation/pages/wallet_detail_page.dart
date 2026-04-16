@@ -88,7 +88,7 @@ class _WalletDetailPageState extends ConsumerState<WalletDetailPage> {
     try {
       final res = await ref.read(dioProvider).post(
         WalletApi.transactionList,
-        data: {'pageNum': _page, 'pageSize': 20},
+        data: {'pageNo': _page, 'pageSize': 20},
       );
       final data = res.data as Map<String, dynamic>?;
       final content = data?['content'] as Map<String, dynamic>?;

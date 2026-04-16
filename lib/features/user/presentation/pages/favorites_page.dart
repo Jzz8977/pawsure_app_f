@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../../core/constants/api_constants.dart';
 import '../../../../../core/network/dio_client.dart';
+import '../../../../../core/network/file_url_resolver.dart';
 import '../../../../../shared/widgets/app_nav_bar.dart';
 import '../../../pet_owner/home/presentation/widgets/sitter_card.dart';
 
@@ -60,16 +61,40 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage>
     }
     setState(() => _sitterLoading = true);
     try {
-      final res = await ref.read(dioProvider).post(
+      final dio = ref.read(dioProvider);
+      final res = await dio.post(
         FavoriteApi.page,
-        data: {'pageNum': _sitterPage, 'pageSize': 20, 'type': 1},
+        data: {'pageNo': _sitterPage, 'pageSize': 20, 'type': 1},
       );
       final data = res.data as Map<String, dynamic>?;
       final content = data?['content'] as Map<String, dynamic>?;
       final raw = (content?['records'] as List<dynamic>?) ?? [];
       final total = (content?['total'] as num?)?.toInt() ?? 0;
-      final items =
-          raw.map((e) => SitterItem.fromJson(e as Map<String, dynamic>)).toList();
+
+      // 解析 coverUrl / avatar fileId → URL
+      final fileIds = <String>[];
+      for (final e in raw) {
+        final m = e as Map<String, dynamic>;
+        final c = m['coverUrl']?.toString() ?? '';
+        final a = m['avatar']?.toString() ?? '';
+        if (c.isNotEmpty) fileIds.add(c);
+        if (a.isNotEmpty) fileIds.add(a);
+      }
+      final urlMap = await resolveFileUrls(dio, fileIds);
+
+      final items = raw.map((e) {
+        final m = e as Map<String, dynamic>;
+        final coverKey = m['coverUrl']?.toString() ?? '';
+        final avatarKey = m['avatar']?.toString() ?? '';
+        return SitterItem.fromJson({
+          ...m,
+          if (coverKey.isNotEmpty && urlMap.containsKey(coverKey))
+            'thumbnailUrl': urlMap[coverKey],
+          if (avatarKey.isNotEmpty && urlMap.containsKey(avatarKey))
+            'avatarUrl': urlMap[avatarKey],
+        });
+      }).toList();
+
       if (mounted) {
         setState(() {
           _sitters.addAll(items);
@@ -94,17 +119,38 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage>
     }
     setState(() => _serviceLoading = true);
     try {
-      final res = await ref.read(dioProvider).post(
+      final dio = ref.read(dioProvider);
+      final res = await dio.post(
         FavoriteApi.page,
-        data: {'pageNum': _servicePage, 'pageSize': 20, 'type': 2},
+        data: {'pageNo': _servicePage, 'pageSize': 20, 'type': 2},
       );
       final data = res.data as Map<String, dynamic>?;
       final content = data?['content'] as Map<String, dynamic>?;
       final raw = (content?['records'] as List<dynamic>?) ?? [];
       final total = (content?['total'] as num?)?.toInt() ?? 0;
-      final items = raw
-          .map((e) => _ServiceItem.fromJson(e as Map<String, dynamic>))
-          .toList();
+
+      // 解析 coverUrl / thumbnailFileId fileId → URL
+      final fileIds = <String>[];
+      for (final e in raw) {
+        final m = e as Map<String, dynamic>;
+        final c = m['coverUrl']?.toString() ?? '';
+        final t = m['thumbnailFileId']?.toString() ?? '';
+        if (c.isNotEmpty) fileIds.add(c);
+        if (t.isNotEmpty) fileIds.add(t);
+      }
+      final urlMap = await resolveFileUrls(dio, fileIds);
+
+      final items = raw.map((e) {
+        final m = e as Map<String, dynamic>;
+        final coverKey = m['coverUrl']?.toString() ?? '';
+        final thumbKey = m['thumbnailFileId']?.toString() ?? '';
+        final resolvedCover = urlMap[coverKey] ?? urlMap[thumbKey];
+        return _ServiceItem.fromJson({
+          ...m,
+          'thumbnailUrl': resolvedCover ?? m['thumbnailUrl'] ?? '',
+        });
+      }).toList();
+
       if (mounted) {
         setState(() {
           _services.addAll(items);
