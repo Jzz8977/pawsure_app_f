@@ -39,7 +39,19 @@
         <meta-data
             android:name="TencentMapSDK"
             android:value="RQ5BZ-XHCC7-J4KXA-H2SBF-57Q7H-JBBHF" />
+
+        <!-- 微信 SDK 回调：包名下必须存在 .wxapi.WXEntryActivity，
+             fluwx 已提供，下面这一行声明仅用于让微信跳回 App。 -->
+        <activity
+            android:name=".wxapi.WXEntryActivity"
+            android:exported="true"
+            android:taskAffinity="com.example.pawsure_app"
+            android:launchMode="singleTask" />
     </application>
+    <!-- 微信 SDK Android 11+ 包可见性 -->
+    <queries>
+        <package android:name="com.tencent.mm" />
+    </queries>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.

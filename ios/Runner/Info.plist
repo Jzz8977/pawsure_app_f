@@ -10,6 +10,27 @@
 	<string>需要访问您的位置以提供附近看护师推荐和地址填写功能</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>需要访问您的位置以提供附近看护师推荐和地址填写功能</string>
+	<!-- ─── 微信 SDK：URL Scheme（appId）+ 跳回 App 所需 schemes ───-->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>weixin</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- TODO 替换为真实 AppID，需与 WeChatConstants.appId 保持一致 -->
+				<string>wx0000000000000000</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>weixin</string>
+		<string>weixinULAPI</string>
+		<string>wechat</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
