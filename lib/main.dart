@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
-import 'package:flutter/rendering.dart';
+import 'core/wechat/fluwx_provider.dart';
 
-void main() {
-  // debugPaintSizeEnabled = true;     // 显示布局边界
-  // debugPaintBaselinesEnabled = true; // 显示文字基线
-  // debugPaintLayerBordersEnabled = true; // 显示层边界
-  runApp(const ProviderScope(child: App()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 提前注册微信 SDK；用 ProviderContainer 在 runApp 之前触发一次，
+  // 之后用同一个 container 包到 ProviderScope，全局复用注册结果。
+  final container = ProviderContainer();
+  // 不 await：注册期间用户可以正常进入登录页，到达微信入口时 service 内部会再 await 一次
+  // ignore: unawaited_futures
+  container.read(fluwxRegisterFutureProvider.future);
+
+  runApp(UncontrolledProviderScope(container: container, child: const App()));
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -70,8 +71,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     try {
       final permission = await Geolocator.checkPermission();
       LocationPermission perm = permission;
+      developer.log('[Home] 当前定位权限=$perm', name: 'home');
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
+        developer.log('[Home] 申请后权限=$perm', name: 'home');
       }
       if (perm == LocationPermission.whileInUse ||
           perm == LocationPermission.always) {
@@ -83,9 +86,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         );
         _userLat = pos.latitude;
         _userLng = pos.longitude;
+        developer.log('[Home] 拿到坐标 lat=$_userLat lng=$_userLng', name: 'home');
+      } else {
+        developer.log('[Home] 权限不足，未获取坐标', name: 'home');
       }
-    } catch (_) {
-      // 无权限或获取失败 — 不传坐标正常请求
+    } catch (e, st) {
+      developer.log('[Home] 定位失败: $e', name: 'home', error: e, stackTrace: st);
     }
     _loadList(reset: true);
   }
@@ -150,17 +156,28 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     setState(() => _loadingList = true);
     try {
+      final reqData = {
+        'pageNo': nextPage,
+        'pageSize': 8,
+        if (_userLat != null) 'latitude': _userLat,
+        if (_userLng != null) 'longitude': _userLng,
+      };
+      developer.log('[Home] 请求发布列表 ${ServicePublishApi.allPublished} body=$reqData',
+          name: 'home');
       final res = await ref.read(dioProvider).post(
-        ServicePublishApi.allPublished,
-        data: {
-          'pageNo': nextPage,
-          'pageSize': 8,
-          if (_userLat != null) 'latitude': _userLat,
-          if (_userLng != null) 'longitude': _userLng,
-        },
-      );
+            ServicePublishApi.allPublished,
+            data: reqData,
+          );
       final data = res.data as Map<String, dynamic>?;
+      developer.log(
+          '[Home] 响应 success=${data?['success']} code=${data?['code']} '
+          'msg=${data?['message'] ?? data?['msg']} '
+          'contentType=${data?['content']?.runtimeType}',
+          name: 'home');
       final success = data?['success'] == true || data?['code'] == 200;
+      if (!success) {
+        developer.log('[Home] 响应未成功，原始 data=$data', name: 'home');
+      }
       if (!success || !mounted) return;
 
       final content = data?['content'];
@@ -200,12 +217,17 @@ class _HomePageState extends ConsumerState<HomePage> {
         });
       }).toList();
 
+      developer.log('[Home] 解析完成 records=${rawList.length} 当前页=$current/$pages',
+          name: 'home');
+
       setState(() {
         _list = reset ? items : [..._list, ...items];
         _pageNo = current;
         _pages = pages;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('[Home] 拉取发布列表失败: $e',
+          name: 'home', error: e, stackTrace: st);
     } finally {
       if (mounted) setState(() => _loadingList = false);
     }

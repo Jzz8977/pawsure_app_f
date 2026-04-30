@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/crypto_utils.dart';
+import '../../../../core/wechat/wechat_login_service.dart';
 import '../../../../shared/providers/user_provider.dart';
 
 // ── 设计 Token ─────────────────────────────────────────────────
@@ -40,6 +41,9 @@ class _LoginPhonePageState extends ConsumerState<LoginPhonePage> {
 
   // 待完成的操作（同意协议后触发）
   _PendingAction? _pending;
+
+  // 微信授权进行中
+  bool _wechatLoading = false;
 
   // ── 表单校验 ─────────────────────────────────────────────────
 
@@ -109,22 +113,13 @@ class _LoginPhonePageState extends ConsumerState<LoginPhonePage> {
     setState(() => _isLoading = true);
     try {
       final encrypted = CryptoUtils.aesEncrypt(_phoneCtrl.text);
-      final response = await ref.read(dioProvider).post(
+      // 业务失败已由 BusinessErrorInterceptor 转成 DioException
+      await ref.read(dioProvider).post(
         AuthApi.phoneLogin,
         data: {'phone': encrypted, 'phoneCode': _codeCtrl.text},
       );
-
       // Token 已由 TokenInterceptor 从响应 Header 中提取并存储
-      final success = response.data?['success'] == true ||
-          response.data?['code'] == 200 ||
-          (response.statusCode != null && response.statusCode! < 300);
-
-      if (success) {
-        await _fetchAndSetUser();
-      } else {
-        _toast(response.data?['message']?.toString() ?? '登录失败');
-        setState(() => _isLoading = false);
-      }
+      await _fetchAndSetUser();
     } on DioException catch (e) {
       _toast(_parseError(e, '登录失败，请重试'));
       setState(() => _isLoading = false);
@@ -166,6 +161,44 @@ class _LoginPhonePageState extends ConsumerState<LoginPhonePage> {
     }
   }
 
+  // ── 微信登录 ─────────────────────────────────────────────────
+
+  Future<void> _wechatLogin() async {
+    if (_wechatLoading) return;
+    if (!_hasAgreed) {
+      setState(() => _pending = _PendingAction.wechat);
+      _showAgreementModal();
+      return;
+    }
+    setState(() => _wechatLoading = true);
+    try {
+      final result =
+          await ref.read(wechatLoginServiceProvider).login();
+      if (!mounted) return;
+      switch (result) {
+        case WeChatLoginSuccess(:final user):
+          context.go(
+            user.role == UserRole.provider ? '/provider-home' : '/home',
+          );
+          break;
+        case WeChatLoginCancelled():
+          _toast('已取消授权');
+          break;
+        case WeChatLoginNotInstalled():
+          _toast('请先安装微信');
+          break;
+        case WeChatLoginUnsupported():
+          _toast('当前环境暂不支持微信登录');
+          break;
+        case WeChatLoginFailed(:final message):
+          _toast(message);
+          break;
+      }
+    } finally {
+      if (mounted) setState(() => _wechatLoading = false);
+    }
+  }
+
   // ── 协议弹窗 ─────────────────────────────────────────────────
 
   void _showAgreementModal() {
@@ -180,6 +213,7 @@ class _LoginPhonePageState extends ConsumerState<LoginPhonePage> {
           setState(() => _pending = null);
           if (action == _PendingAction.getCode) _getCode();
           if (action == _PendingAction.login) _login();
+          if (action == _PendingAction.wechat) _wechatLogin();
         },
         onShowTerms: () => _showDoc('服务条款'),
         onShowPrivacy: () => _showDoc('隐私协议'),
@@ -448,7 +482,7 @@ class _LoginPhonePageState extends ConsumerState<LoginPhonePage> {
   Widget _buildWeChatButton() {
     return Center(
       child: GestureDetector(
-        onTap: () => {},
+        onTap: _wechatLoading ? null : _wechatLogin,
         child: Container(
           width: 60,
           height: 60,
@@ -464,12 +498,22 @@ class _LoginPhonePageState extends ConsumerState<LoginPhonePage> {
             ],
           ),
           child: Center(
-            child: SvgPicture.asset(
-              'assets/images/login/wechat1.svg',
-              width: 32,
-              height: 32,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-            ),
+            child: _wechatLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: Colors.white,
+                    ),
+                  )
+                : SvgPicture.asset(
+                    'assets/images/login/wechat1.svg',
+                    width: 32,
+                    height: 32,
+                    colorFilter:
+                        const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  ),
           ),
         ),
       ),
@@ -534,7 +578,7 @@ class _LoginPhonePageState extends ConsumerState<LoginPhonePage> {
 
 // ── 枚举 ──────────────────────────────────────────────────────
 
-enum _PendingAction { getCode, login }
+enum _PendingAction { getCode, login, wechat }
 
 // ── 底部边框输入框 ─────────────────────────────────────────────
 

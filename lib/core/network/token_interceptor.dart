@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/secure_storage.dart';
@@ -16,9 +18,10 @@ class TokenInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     final storage = _ref.read(secureStorageProvider);
-    final token = await storage.read(StorageKeys.accessToken);
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    final token = await storage.read(StorageKeys.token);
+    if (token != null && token.isNotEmpty) {
+      // 与小程序版保持一致：直接注入原始 token，不加 Bearer 前缀
+      options.headers['Authorization'] = token;
     }
     handler.next(options);
   }
@@ -33,12 +36,26 @@ class TokenInterceptor extends Interceptor {
     final isLoginEndpoint =
         ApiConstants.loginPaths.any((p) => path.endsWith(p));
 
-    if (isLoginEndpoint && _isSuccess(response.statusCode)) {
+    // 仅在 HTTP 200 且业务 code 为成功（200 / 10001）时才写 token
+    if (isLoginEndpoint &&
+        _isSuccess(response.statusCode) &&
+        _isBusinessSuccess(response.data)) {
       await _extractAndStoreTokens(response);
     }
 
     // 直接透传完整响应，业务层自行处理 data
     handler.next(response);
+  }
+
+  /// 判断业务层是否成功（与 `BusinessErrorInterceptor` 同源逻辑）
+  bool _isBusinessSuccess(dynamic data) {
+    if (data is! Map) return false;
+    final code = data['code'];
+    final success = data['success'];
+    if (success == true) return true;
+    if (code is num) return code == 200 || code == 10001;
+    if (code is String) return code == '200' || code == '10001';
+    return false;
   }
 
   // ── 错误拦截：401 时清理本地 token ──────────────────────────────
@@ -59,10 +76,48 @@ class TokenInterceptor extends Interceptor {
     final headers = response.headers;
     final storage = _ref.read(secureStorageProvider);
 
-    // 读取 access token（header key 不区分大小写，dio 已统一转小写）
-    final accessToken = headers.value(ApiConstants.accessTokenHeader);
-    if (accessToken != null && accessToken.isNotEmpty) {
-      await storage.write(StorageKeys.accessToken, accessToken);
+    // 后端在响应 header 中放 token = "Bearer eyJhbGc..."
+    // ⚠️ Web 环境受 CORS 限制：必须在 Access-Control-Expose-Headers 里包含 token，否则读不到
+    developer.log(
+      '[Auth] 登录响应 headers keys=${headers.map.keys.toList()}',
+      name: 'auth',
+    );
+
+    final rawToken = headers.value(ApiConstants.tokenHeader) ??
+        headers.value('Token') ??
+        headers.value('authorization') ??
+        headers.value('Authorization');
+
+    String? finalToken = rawToken;
+
+    // header 拿不到（web 端 CORS 没暴露），尝试从 body 兜底
+    if (finalToken == null || finalToken.isEmpty) {
+      final body = response.data;
+      if (body is Map) {
+        final content = body['content'];
+        final dataField = body['data'];
+        if (content is Map && content['token'] is String) {
+          finalToken = content['token'] as String;
+        } else if (dataField is Map && dataField['token'] is String) {
+          finalToken = dataField['token'] as String;
+        } else if (body['token'] is String) {
+          finalToken = body['token'] as String;
+        }
+      }
+    }
+
+    if (finalToken != null && finalToken.isNotEmpty) {
+      // 完整保存（含 "Bearer " 前缀），下次请求时直接整段塞进 Authorization
+      await storage.write(StorageKeys.token, finalToken);
+      developer.log('[Auth] token 已保存（前 30 字符）: '
+          '${finalToken.length > 30 ? finalToken.substring(0, 30) : finalToken}…',
+          name: 'auth');
+    } else {
+      developer.log(
+        '[Auth] 未能取到 token —— 检查后端 CORS 是否在 Access-Control-Expose-Headers 暴露 token，'
+        '或将 token 同时放到 body.content.token',
+        name: 'auth',
+      );
     }
 
     // 读取 refresh token（如果服务端有返回）

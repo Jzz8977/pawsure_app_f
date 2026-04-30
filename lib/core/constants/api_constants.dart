@@ -17,7 +17,7 @@ class ApiConstants {
   static const String tencentMapKey = 'RQ5BZ-XHCC7-J4KXA-H2SBF-57Q7H-JBBHF';
 
   // 服务端响应 Header 中携带 token 的字段名
-  static const String accessTokenHeader = 'x-access-token';
+  static const String tokenHeader = 'token';
   static const String refreshTokenHeader = 'x-refresh-token';
 
   // 登录相关路径（响应拦截器据此判断是否需要提取 token）
@@ -402,4 +402,19 @@ class AiApi {
   static const String generate    = '$_id/ai/generate';
   static const String polish      = '$_id/ai/polish';
   static const String averageTime = '$_id/ai/averageTime';
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// COMMENT（评价）
+// ──────────────────────────────────────────────────────────────────────────────
+class CommentApi {
+  CommentApi._();
+
+  static const String submit            = '$_order/comment/submit';
+  static const String detail            = '$_order/comment/detail';
+  static const String append            = '$_order/comment/append';
+  static const String listByUserId      = '$_order/comment/listByUserId';
+  static const String listByServerId    = '$_order/comment/listByServerId';
+  static const String avgScoreByServer  = '$_order/comment/avgScoreByServerId';
+  static const String pageByServerId    = '$_order/comment/pageByServerId';
 }

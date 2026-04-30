@@ -190,7 +190,6 @@ class _AppNavBarState extends State<AppNavBar> {
               : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
-            height: AppNavBar._kNavHeight,
             decoration: BoxDecoration(
               color: _effectiveBg,
               border: widget.showDivider && !widget.enableScrollEffect
@@ -201,7 +200,16 @@ class _AppNavBarState extends State<AppNavBar> {
                           bottom: BorderSide(color: Color(0xFFEEEEEE), width: 0.5))
                       : null,
             ),
-            child: widget.showSearch ? _buildSearchLayout() : _buildTitleLayout(),
+            child: SafeArea(
+              top: true,
+              bottom: false,
+              left: false,
+              right: false,
+              child: SizedBox(
+                height: AppNavBar._kNavHeight,
+                child: widget.showSearch ? _buildSearchLayout() : _buildTitleLayout(),
+              ),
+            ),
           ),
         ),
       ),

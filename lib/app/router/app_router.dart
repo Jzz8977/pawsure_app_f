@@ -20,6 +20,8 @@ import '../../features/pet_owner/services/presentation/pages/services_page.dart'
 
 // Provider Role
 import '../../features/provider_role/home/pages/provider_home_page.dart';
+import '../../features/provider_role/home/pages/companion_home_page.dart';
+import '../../features/provider_role/home/pages/provider_profile_page.dart';
 import '../../features/provider_role/work_tab/pages/work_tab_page.dart';
 import '../../features/provider_role/clockin/pages/clockin_page.dart';
 import '../../features/provider_role/clockin/pages/clockin_record_page.dart';
@@ -234,6 +236,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           providerId: s.uri.queryParameters['providerId'],
         ),
       ),
+      GoRoute(
+        path: '/companion-home',
+        builder: (_, s) => CompanionHomePage(
+          providerId: s.uri.queryParameters['providerId'] ?? '',
+        ),
+      ),
+      GoRoute(path: '/provider-profile', builder: (_, _s) => const ProviderProfilePage()),
       GoRoute(
         path: '/clockin-task-detail/:id',
         builder: (_, s) => ClockinTaskDetailPage(
